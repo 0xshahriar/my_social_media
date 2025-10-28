@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Social0x1 · Private Firebase Messenger</title>
+    <meta
+      name="description"
+      content="Social0x1 is a vibrant, minimalist private messenger backed by Firebase."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <script>
+      (function () {
+        const storageKey = "social0x1-theme";
+        const root = document.documentElement;
+        if (!root) return;
+
+        const mediaQuery =
+          typeof window.matchMedia === "function"
+            ? window.matchMedia("(prefers-color-scheme: dark)")
+            : null;
+        const systemPreference = mediaQuery?.matches ? "dark" : "light";
+        let resolvedTheme = systemPreference || "light";
+
+        try {
+          const stored = window.localStorage.getItem(storageKey);
+          if (stored === "light" || stored === "dark") {
+            resolvedTheme = stored;
+          } else if (stored === "system") {
+            resolvedTheme = systemPreference || "light";
+          }
+        } catch (error) {
+          resolvedTheme = systemPreference || "light";
+        }
+
+        root.setAttribute("data-theme", resolvedTheme);
+        root.style.colorScheme = resolvedTheme;
+      })();
+    </script>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script defer src="config/firebase-config.js"></script>
+  </head>
+  <body>
+    <header class="app-header" data-app-header>
+      <div class="branding">
+        <h1>Social0x1</h1>
+        <span>Minimalist. Vibrant. Secure private messaging.</span>
+      </div>
+      <div class="header-actions">
+        <nav class="theme-toggle" aria-label="Theme selection">
+          <button type="button" data-theme-mode="light">Light</button>
+          <button type="button" data-theme-mode="dark">Dark</button>
+          <button type="button" data-theme-mode="system">System</button>
+        </nav>
+        <div class="user-menu">
+          <span class="user-chip" data-user-chip>Loading…</span>
+          <button type="button" data-sign-out>Sign out</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <aside class="sidebar">
+        <section class="profile-card" aria-live="polite">
+          <h2>Your account</h2>
+          <dl>
+            <div>
+              <dt>Display name</dt>
+              <dd data-user-name>—</dd>
+            </div>
+            <div>
+              <dt>Email</dt>
+              <dd data-user-email>—</dd>
+            </div>
+          </dl>
+          <p class="profile-note">
+            Secret chats are stored on this device only. Clear your browser storage to remove them.
+          </p>
+        </section>
+
+        <section class="conversation-panel">
+          <header>
+            <h2>Start a conversation</h2>
+            <p class="conversation-feedback" data-conversation-feedback role="status"></p>
+          </header>
+          <form class="conversation-form" data-start-conversation autocomplete="off">
+            <label for="conversation-email" class="sr-only">Friend email</label>
+            <input
+              id="conversation-email"
+              name="email"
+              type="email"
+              placeholder="friend@example.com"
+              required
+            />
+            <fieldset>
+              <legend>Mode</legend>
+              <label>
+                <input type="radio" name="mode" value="general" checked />
+                General · synced via Firebase
+              </label>
+              <label>
+                <input type="radio" name="mode" value="secret" />
+                Secret · stored locally
+              </label>
+            </fieldset>
+            <button type="submit">Open chat</button>
+          </form>
+          <div class="invite-hint" data-invite-hint hidden>
+            <h3>Invitation sent</h3>
+            <p>
+              Share this link with your contact so they can create an account and jump into the chat.
+            </p>
+            <code data-invite-link></code>
+            <button type="button" data-copy-invite>Copy link</button>
+          </div>
+        </section>
+
+        <section class="conversation-list-card">
+          <header>
+            <h2>Your chats</h2>
+          </header>
+          <ul class="conversation-list" data-conversation-list aria-live="polite"></ul>
+        </section>
+      </aside>
+
+      <section class="chat-panel" data-chat-panel>
+        <header class="chat-header">
+          <div>
+            <h2 data-chat-title>Select a conversation</h2>
+            <p data-chat-subtitle>Start a chat from the sidebar to view messages.</p>
+          </div>
+          <div class="chat-meta" data-chat-meta hidden>
+            <span data-chat-mode></span>
+          </div>
+          <p class="feedback" data-feedback></p>
+        </header>
+        <div class="chat-content">
+          <div class="chat-placeholder" data-empty-state>
+            <h3>You're almost there</h3>
+            <p>Pick an existing conversation or create a new one to begin messaging.</p>
+          </div>
+          <div class="chat-stream" data-message-stream aria-live="polite" hidden></div>
+        </div>
+        <form class="chat-composer" data-composer autocomplete="off">
+          <textarea
+            name="message"
+            rows="3"
+            maxlength="1000"
+            placeholder="Write a private message…"
+            required
+            data-message-input
+            disabled
+          ></textarea>
+          <div class="composer-actions">
+            <span class="composer-hint" data-secret-hint hidden>
+              Secret chats never leave this device.
+            </span>
+            <button type="submit" disabled>
+              <svg width="20" height="20" aria-hidden="true">
+                <use href="assets/icons.svg#icon-send"></use>
+              </svg>
+              <span class="sr-only">Send message</span>
+              Send
+            </button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
