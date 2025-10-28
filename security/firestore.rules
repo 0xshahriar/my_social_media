@@ -1,0 +1,138 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function expectedHash(first, second) {
+      return first <= second ? first + '_' + second : second + '_' + first;
+    }
+
+    function isConversationParticipant(conversationId) {
+      return isSignedIn()
+        && request.auth.uid in get(/databases/$(database)/documents/conversations/$(conversationId)).data.members;
+    }
+
+    function authEmailLowercase() {
+      return request.auth != null && request.auth.token.email is string
+        ? lower(request.auth.token.email)
+        : null;
+    }
+
+    match /profiles/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && request.auth.uid == userId
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 80
+        && request.resource.data.email is string
+        && request.resource.data.emailLowercase is string
+        && (!('createdAt' in request.resource.data) || request.resource.data.createdAt is timestamp)
+        && (!('updatedAt' in request.resource.data) || request.resource.data.updatedAt is timestamp)
+        && (!('lastLoginAt' in request.resource.data) || request.resource.data.lastLoginAt is timestamp);
+      allow delete: if false;
+    }
+
+    match /conversations/{conversationId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.members;
+      allow create: if isSignedIn()
+        && request.auth.uid in request.resource.data.members
+        && validConversation(request.resource.data);
+      allow update: if isSignedIn()
+        && request.auth.uid in resource.data.members
+        && request.resource.data.members == resource.data.members
+        && request.resource.data.memberHash == resource.data.memberHash
+        && request.resource.data.keys().hasOnly([
+          'members',
+          'memberHash',
+          'memberProfiles',
+          'createdAt',
+          'updatedAt',
+          'lastMessage',
+          'lastMessageAt',
+          'lastSender',
+          'mode'
+        ])
+        && request.resource.data.mode == resource.data.mode
+        && validConversation(request.resource.data);
+      allow delete: if false;
+
+      function validConversation(data) {
+        return data.members is list
+          && data.members.size() == 2
+          && data.members[0] is string
+          && data.members[1] is string
+          && data.memberHash is string
+          && data.memberHash == expectedHash(data.members[0], data.members[1])
+          && data.memberProfiles is map
+          && data.memberProfiles.keys().hasOnly(data.members)
+          && data.memberProfiles[data.members[0]] is map
+          && data.memberProfiles[data.members[1]] is map
+          && data.memberProfiles[data.members[0]].displayName is string
+          && data.memberProfiles[data.members[0]].email is string
+          && data.memberProfiles[data.members[1]].displayName is string
+          && data.memberProfiles[data.members[1]].email is string
+          && (!('mode' in data) || (data.mode is string && data.mode in ['general', 'secret']))
+          && (!('createdAt' in data) || data.createdAt is timestamp)
+          && (!('updatedAt' in data) || data.updatedAt is timestamp)
+          && (!('lastMessage' in data) || data.lastMessage is string)
+          && (!('lastMessageAt' in data) || data.lastMessageAt == null || data.lastMessageAt is timestamp)
+          && (!('lastSender' in data) || data.lastSender is string);
+      }
+    }
+
+    match /conversations/{conversationId}/messages/{messageId} {
+      allow read: if isConversationParticipant(conversationId);
+      allow create: if isConversationParticipant(conversationId)
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 1000
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.displayName is string;
+      allow update, delete: if false;
+    }
+
+    match /conversations/{conversationId}/secretPackets/{packetId} {
+      allow read: if isConversationParticipant(conversationId)
+        && ((resource.data.recipientId == request.auth.uid) || (resource.data.senderId == request.auth.uid));
+      allow create: if isConversationParticipant(conversationId)
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.recipientId is string
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 1000
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.senderName is string;
+      allow delete: if isConversationParticipant(conversationId)
+        && ((resource.data.recipientId == request.auth.uid) || (resource.data.senderId == request.auth.uid));
+      allow update: if false;
+    }
+
+    match /invites/{inviteId} {
+      allow read: if isSignedIn()
+        && (resource.data.inviterId == request.auth.uid || resource.data.emailLowercase == authEmailLowercase());
+      allow create: if isSignedIn()
+        && request.resource.data.inviterId == request.auth.uid
+        && request.resource.data.email is string
+        && request.resource.data.emailLowercase is string
+        && request.resource.data.emailLowercase == lower(request.resource.data.email)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.inviterProfile is map
+        && request.resource.data.inviterProfile.displayName is string
+        && request.resource.data.inviterProfile.email is string
+        && request.resource.data.mode in ['general', 'secret']
+        && request.resource.data.createdAt is timestamp;
+      allow update: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['status', 'acceptedAt', 'conversationId'])
+        && resource.data.status == 'pending'
+        && request.resource.data.status in ['accepted', 'pending']
+        && (!('acceptedAt' in request.resource.data) || request.resource.data.acceptedAt == null || request.resource.data.acceptedAt is timestamp)
+        && (!('conversationId' in request.resource.data) || request.resource.data.conversationId is string)
+        && (resource.data.inviterId == request.auth.uid || resource.data.emailLowercase == authEmailLowercase());
+      allow delete: if false;
+    }
+  }
+}
