@@ -68,6 +68,11 @@ const newChatButton = document.getElementById("new-chat-button");
 const newChatForm = document.getElementById("new-chat-form");
 const newChatEmailInput = document.getElementById("new-chat-email");
 
+const openSidebarButton = document.getElementById("open-sidebar");
+const closeSidebarButton = document.getElementById("close-sidebar");
+const sidebarOverlay = document.getElementById("sidebar-overlay");
+const mobileSidebarMedia = window.matchMedia("(max-width: 960px)");
+
 let currentUser = null;
 let currentUserDocUnsub = null;
 let conversationsUnsub = null;
@@ -142,6 +147,45 @@ function toggleAuth(showSignUp = false) {
 
 goToSignUpButton.addEventListener("click", () => toggleAuth(true));
 goToSignInButton.addEventListener("click", () => toggleAuth(false));
+
+function setSidebarOpen(isOpen) {
+  if (!chatLayout) return;
+  const canShowSidebar = !chatLayout.classList.contains("hidden") && mobileSidebarMedia.matches;
+  const nextState = Boolean(isOpen && canShowSidebar);
+  chatLayout.classList.toggle("sidebar-open", nextState);
+  document.body.classList.toggle("prevent-scroll", nextState);
+  if (sidebarOverlay) {
+    sidebarOverlay.setAttribute("aria-hidden", String(!nextState));
+  }
+}
+
+function closeSidebarForMobile() {
+  if (mobileSidebarMedia.matches) {
+    setSidebarOpen(false);
+  }
+}
+
+openSidebarButton?.addEventListener("click", () => setSidebarOpen(true));
+closeSidebarButton?.addEventListener("click", () => setSidebarOpen(false));
+sidebarOverlay?.addEventListener("click", () => setSidebarOpen(false));
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    setSidebarOpen(false);
+  }
+});
+
+function handleSidebarMediaChange(event) {
+  if (!event.matches) {
+    setSidebarOpen(false);
+  }
+}
+
+if (mobileSidebarMedia.addEventListener) {
+  mobileSidebarMedia.addEventListener("change", handleSidebarMediaChange);
+} else {
+  mobileSidebarMedia.addListener(handleSidebarMediaChange);
+}
 
 function initialsFromName(name = "") {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -248,6 +292,7 @@ signUpForm.addEventListener("submit", async (event) => {
 });
 
 signOutButton.addEventListener("click", async () => {
+  closeSidebarForMobile();
   try {
     await signOut(auth);
   } catch (error) {
@@ -257,6 +302,7 @@ signOutButton.addEventListener("click", async () => {
 });
 
 openProfileSettingsButton.addEventListener("click", () => {
+  closeSidebarForMobile();
   if (!profileDialog.open) {
     profileDialog.showModal();
   }
@@ -296,6 +342,7 @@ profileForm.addEventListener("submit", async (event) => {
 });
 
 newChatButton.addEventListener("click", () => {
+  closeSidebarForMobile();
   if (!newChatDialog.open) {
     newChatForm.reset();
     newChatDialog.showModal();
@@ -498,6 +545,7 @@ function setActiveConversation(conversationId) {
     messageForm.classList.add("hidden");
     conversationEmpty.classList.remove("hidden");
     messageList.innerHTML = "";
+    closeSidebarForMobile();
     return;
   }
 
@@ -510,6 +558,7 @@ function setActiveConversation(conversationId) {
   subscribeToOtherUser(state.otherParticipant?.uid);
   subscribeToMessages(conversationId);
   renderConversationList();
+  closeSidebarForMobile();
 }
 
 function renderConversationHeader() {
@@ -734,6 +783,7 @@ onAuthStateChanged(auth, async (user) => {
   if (!user) {
     authContainer.classList.remove("hidden");
     chatLayout.classList.add("hidden");
+    setSidebarOpen(false);
     toggleAuth(false);
     return;
   }
@@ -745,6 +795,7 @@ onAuthStateChanged(auth, async (user) => {
 
   authContainer.classList.add("hidden");
   chatLayout.classList.remove("hidden");
+  setSidebarOpen(false);
 });
 
 window.addEventListener("beforeunload", () => {

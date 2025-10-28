@@ -78,7 +78,15 @@
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
       <div class="chat-layout hidden" id="chat-layout">
-        <aside class="sidebar">
+        <aside class="sidebar" aria-label="Conversation navigation">
+          <button
+            type="button"
+            class="icon-button sidebar-toggle close"
+            id="close-sidebar"
+            aria-label="Close navigation"
+          >
+            ✕
+          </button>
           <div class="profile card" id="profile-card">
             <div class="avatar" id="profile-avatar">?</div>
             <div class="profile-info">
@@ -108,6 +116,14 @@
           </div>
 
           <header class="conversation-header hidden" id="conversation-header">
+            <button
+              type="button"
+              class="icon-button sidebar-toggle open"
+              id="open-sidebar"
+              aria-label="Open navigation"
+            >
+              ☰
+            </button>
             <div class="header-info">
               <div class="avatar" id="chat-avatar"></div>
               <div>
@@ -131,6 +147,8 @@
             <button type="submit" class="btn primary">Send</button>
           </form>
         </section>
+
+        <div class="sidebar-overlay" id="sidebar-overlay" aria-hidden="true"></div>
       </div>
     </div>
 
