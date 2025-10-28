@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vibrant Chat - Social Messenger</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="app" id="app">
+      <header class="auth-header">
+        <h1>Vibrant Chat</h1>
+        <p>Messenger-style social chat built on Firebase.</p>
+      </header>
+
+      <main class="auth-container" id="auth-container">
+        <section class="card auth-card" id="sign-in-card">
+          <h2>Sign in</h2>
+          <form id="sign-in-form" class="stack">
+            <label>
+              <span>Email</span>
+              <input type="email" id="sign-in-email" autocomplete="email" required />
+            </label>
+            <label>
+              <span>Password</span>
+              <input
+                type="password"
+                id="sign-in-password"
+                autocomplete="current-password"
+                minlength="6"
+                required
+              />
+            </label>
+            <button type="submit" class="btn primary">Sign in</button>
+          </form>
+          <p class="muted">
+            New here?
+            <button type="button" id="go-to-sign-up" class="link">Create an account</button>
+          </p>
+        </section>
+
+        <section class="card auth-card hidden" id="sign-up-card">
+          <h2>Create account</h2>
+          <form id="sign-up-form" class="stack">
+            <label>
+              <span>Display name</span>
+              <input type="text" id="sign-up-display-name" autocomplete="name" required />
+            </label>
+            <label>
+              <span>Email</span>
+              <input type="email" id="sign-up-email" autocomplete="email" required />
+            </label>
+            <label>
+              <span>Password</span>
+              <input
+                type="password"
+                id="sign-up-password"
+                autocomplete="new-password"
+                minlength="6"
+                required
+              />
+            </label>
+            <button type="submit" class="btn primary">Create account</button>
+          </form>
+          <p class="muted">
+            Already registered?
+            <button type="button" id="go-to-sign-in" class="link">Sign in instead</button>
+          </p>
+        </section>
+      </main>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+      <div class="chat-layout hidden" id="chat-layout">
+        <aside class="sidebar">
+          <div class="profile card" id="profile-card">
+            <div class="avatar" id="profile-avatar">?</div>
+            <div class="profile-info">
+              <h2 id="profile-name">User</h2>
+              <p class="muted" id="profile-email"></p>
+            </div>
+            <button class="icon-button" id="open-profile-settings" aria-label="Edit profile">
+              ✨
+            </button>
+          </div>
+
+          <div class="actions">
+            <button class="btn secondary" id="new-chat-button">Start a chat</button>
+            <button class="btn subtle" id="sign-out-button">Sign out</button>
+          </div>
+
+          <div class="sidebar-section">
+            <h3>Chats</h3>
+            <ul class="conversation-list" id="conversation-list" role="list"></ul>
+          </div>
+        </aside>
+
+        <section class="conversation">
+          <div class="conversation-empty" id="conversation-empty">
+            <h2>Welcome!</h2>
+            <p>Select a conversation or start a new one to begin chatting.</p>
+          </div>
+
+          <header class="conversation-header hidden" id="conversation-header">
+            <div class="header-info">
+              <div class="avatar" id="chat-avatar"></div>
+              <div>
+                <h2 id="chat-name"></h2>
+                <p class="muted" id="chat-status"></p>
+              </div>
+            </div>
+            <div class="header-status" id="typing-indicator" hidden>Typing…</div>
+          </header>
+
+          <div class="message-list" id="message-list" role="log" aria-live="polite"></div>
+
+          <form class="message-form hidden" id="message-form">
+            <textarea
+              id="message-input"
+              placeholder="Write a message"
+              rows="1"
+              required
+              maxlength="1000"
+            ></textarea>
+            <button type="submit" class="btn primary">Send</button>
+          </form>
+        </section>
+      </div>
+    </div>
+
+    <dialog id="profile-dialog" class="dialog">
+      <form method="dialog" class="card stack" id="profile-form">
+        <h2>Edit profile</h2>
+        <label>
+          <span>Display name</span>
+          <input type="text" id="profile-display-name" required />
+        </label>
+        <label>
+          <span>Accent color</span>
+          <input type="color" id="profile-color" value="#7c3aed" />
+        </label>
+        <menu class="dialog-actions">
+          <button type="reset" class="btn subtle" value="cancel">Cancel</button>
+          <button type="submit" class="btn primary" value="confirm">Save</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="new-chat-dialog" class="dialog">
+      <form method="dialog" class="card stack" id="new-chat-form">
+        <h2>Start a new chat</h2>
+        <label>
+          <span>Invite by email</span>
+          <input type="email" id="new-chat-email" placeholder="friend@example.com" required />
+        </label>
+        <p class="muted">
+          The email must belong to an existing Vibrant Chat user.
+        </p>
+        <menu class="dialog-actions">
+          <button type="reset" class="btn subtle" value="cancel">Cancel</button>
+          <button type="submit" class="btn primary" value="confirm">Start chat</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
