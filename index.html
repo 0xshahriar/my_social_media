@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Social0x1 · Minimalist Firebase Chat</title>
+    <meta
+      name="description"
+      content="Social0x1 is a vibrant, minimalist chat social network powered by Firebase."
+    />
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script defer src="config/firebase-config.js"></script>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="branding">
+          <h1>Social0x1</h1>
+          <span>Minimalist. Vibrant. Secure chat for every community.</span>
+        </div>
+        <nav class="theme-toggle" aria-label="Theme selection">
+          <button type="button" data-theme-mode="light">Light</button>
+          <button type="button" data-theme-mode="dark">Dark</button>
+          <button type="button" data-theme-mode="system">System</button>
+        </nav>
+      </header>
+
+      <section class="chat-shell">
+        <div class="chat-card" role="application" aria-label="Social0x1 chat">
+          <div class="chat-header">
+            <div class="status">
+              <div class="status-dot" aria-hidden="true"></div>
+              <h2>Live feed</h2>
+            </div>
+            <p class="feedback" data-feedback>Connect to join the conversation.</p>
+          </div>
+
+          <div class="chat-stream" data-message-stream aria-live="polite"></div>
+
+          <form class="chat-composer" data-composer autocomplete="off">
+            <textarea
+              name="message"
+              rows="3"
+              maxlength="500"
+              placeholder="Share something uplifting with Social0x1…"
+              required
+              data-message-input
+              disabled
+            ></textarea>
+            <button type="submit" disabled>
+              <svg width="20" height="20" aria-hidden="true">
+                <use href="assets/icons.svg#icon-send"></use>
+              </svg>
+              <span class="sr-only">Send message</span>
+              Send
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <footer>
+        <div class="chat-shell">
+          <p>
+            Need help? Follow the <a href="README.md" target="_blank">setup guide</a> or review
+            the security checklist in the repository.
+          </p>
+        </div>
+      </footer>
+    </main>
+
+    <div class="welcome-modal" data-welcome-modal aria-modal="true" role="dialog">
+      <div class="welcome-card">
+        <svg width="48" height="48" aria-hidden="true">
+          <use href="assets/icons.svg#icon-spark"></use>
+        </svg>
+        <h2>Welcome to Social0x1</h2>
+        <p>
+          Social0x1 keeps communities connected in real time. Sign in anonymously to join the feed.
+          You can update authentication providers anytime inside Firebase.
+        </p>
+        <button type="button" data-start-chat>Connect Securely</button>
+      </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
