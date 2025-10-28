@@ -37,25 +37,24 @@ function reflectActiveButton(mode) {
 
 function setThemeAttribute(mode) {
   root.setAttribute("data-theme", mode);
+  document.body?.setAttribute("data-theme", mode);
 }
 
-function applySystemPreference() {
-  if (!systemMedia) {
-    systemMedia = window.matchMedia("(prefers-color-scheme: dark)");
-    systemMedia.addEventListener("change", () => {
-      if (currentMode === ThemeMode.SYSTEM) {
-        applySystemPreference();
-      }
-    });
-  }
-  const prefersDark = systemMedia.matches;
+function resolveSystemMode(media) {
+  const prefersDark = media.matches;
   setThemeAttribute(prefersDark ? ThemeMode.DARK : ThemeMode.LIGHT);
+}
+
+function handleSystemChange(event) {
+  if (currentMode === ThemeMode.SYSTEM) {
+    resolveSystemMode(event.target || event);
+  }
 }
 
 function applyTheme(mode) {
   currentMode = mode;
   if (mode === ThemeMode.SYSTEM) {
-    applySystemPreference();
+    resolveSystemMode(systemMedia);
   } else {
     setThemeAttribute(mode);
   }
@@ -73,11 +72,11 @@ function resolvePreferredTheme() {
 
 export function initializeTheme() {
   systemMedia = window.matchMedia("(prefers-color-scheme: dark)");
-  systemMedia.addEventListener("change", () => {
-    if (currentMode === ThemeMode.SYSTEM) {
-      applySystemPreference();
-    }
-  });
+  if (typeof systemMedia.addEventListener === "function") {
+    systemMedia.addEventListener("change", handleSystemChange);
+  } else if (typeof systemMedia.addListener === "function") {
+    systemMedia.addListener(handleSystemChange);
+  }
 
   applyTheme(resolvePreferredTheme());
 

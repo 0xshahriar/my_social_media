@@ -1,6 +1,6 @@
 # Social0x1
 
-Social0x1 is a Firebase-backed, chat-first social platform designed with a vibrant yet minimalistic interface. This repository contains the front-end implementation written in HTML, CSS, and JavaScript, along with a detailed guide for setting up Firebase services securely.
+Social0x1 is a Firebase-backed, private messenger designed with a vibrant yet minimalistic interface. This repository contains the front-end implementation written in HTML, CSS, and JavaScript, along with a detailed guide for setting up Firebase services securely so every conversation stays between the people participating in it.
 
 ## Index
 
@@ -26,8 +26,8 @@ Social0x1 delivers real-time chat with Firebase Authentication and Cloud Firesto
 ## Architecture
 
 - **Frontend:** Vanilla HTML, CSS, and JavaScript served as static assets.
-- **Backend:** Firebase Authentication (email link or anonymous sign-in) and Cloud Firestore for message storage.
-- **Security:** Principle of least privilege via Firebase Security Rules and client-side validation to reduce attack surface.
+- **Backend:** Firebase Authentication (email/password) and Cloud Firestore storing `profiles`, `conversations`, and per-conversation `messages` subcollections.
+- **Security:** Principle of least privilege enforced with granular Firebase Security Rules, scoped Firestore queries, and client-side validation to reduce attack surface.
 
 ## Prerequisites
 
@@ -55,7 +55,7 @@ npm install --global firebase-tools serve
 ### 3. Configure Firebase
 
 1. Visit the [Firebase console](https://console.firebase.google.com/) and create a project (or reuse an existing one).
-2. Enable **Authentication** and choose sign-in providers (Anonymous sign-in is supported out of the box. Email link or other providers work with minor UI tweaks).
+2. Enable **Authentication** and turn on the **Email/Password** provider. (You can add additional providers later, but the UI ships with email/password flows.)
 3. Enable **Cloud Firestore** in production mode and set regional preferences close to your user base.
 4. From **Project Settings → General**, register a web app named `Social0x1` and copy the configuration object.
 5. Duplicate the provided template:
@@ -63,7 +63,8 @@ npm install --global firebase-tools serve
    cp config/firebase-config.example.js config/firebase-config.js
    ```
 6. Replace each placeholder in `config/firebase-config.js` with the values from the Firebase console. Never commit your secrets to version control.
-7. Update your Firestore security rules to the example in [`security/firestore.rules`](security/firestore.rules) to enforce authenticated access and input validation.
+7. Update your Firestore security rules to the example in [`security/firestore.rules`](security/firestore.rules) to enforce authenticated access, per-conversation privacy, and payload validation.
+8. (Optional but recommended) Add a composite index for the `conversations` collection on the fields `members` (array contains) and `memberHash` equality if the Firebase console requests it during testing.
 
 ### 4. Serve the Application Locally
 
@@ -93,17 +94,18 @@ Open the reported URL (usually `http://localhost:5000/`) in your browser.
 
 ## Security Considerations
 
-- **Authentication required:** Anonymous sign-in is performed before any database reads/writes; unauthenticated requests are blocked by rules.
-- **Client-side validation:** Messages are trimmed, length-limited, and rendered via `textContent` to prevent XSS.
+- **Authentication required:** Email/password sign-in gates every read/write, and profiles are created per user to prevent email reuse exploits.
+- **Conversation scoping:** Firestore rules restrict `conversations` and `messages` so only listed members can read or write data, and payloads are validated for shape and length.
+- **Client-side validation:** Inputs are trimmed, length-limited, and rendered via `textContent` to prevent XSS or injection attacks.
 - **Error transparency:** All Firebase interactions are wrapped in guarded async functions that surface actionable feedback to the user without leaking stack traces.
 - **Transport security:** Always serve via HTTPS (Firebase Hosting does this automatically).
 - **Dependency-free frontend:** No third-party scripts beyond Firebase SDK to reduce supply-chain risk.
 
 ## Testing the Experience
 
-1. Sign in anonymously from the welcome dialog.
-2. Send a message and confirm it appears with your avatar color.
-3. Open another browser window to observe real-time updates.
+1. Create an account from the **Sign Up** tab or log in with an existing email/password pair.
+2. Use the **Start private chat** form to invite another registered email and confirm a new conversation appears.
+3. Exchange messages between two different browser sessions and verify the conversation stays private to those accounts.
 4. Toggle light/dark/system themes to ensure color contrast remains high.
 5. Disable the network tab in your dev tools to confirm graceful error handling.
 

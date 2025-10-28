@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Social0x1 · Minimalist Firebase Chat</title>
+    <title>Social0x1 · Private Firebase Messenger</title>
     <meta
       name="description"
-      content="Social0x1 is a vibrant, minimalist chat social network powered by Firebase."
+      content="Social0x1 is a vibrant, minimalist private messenger backed by Firebase."
     />
     <link rel="stylesheet" href="css/style.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -19,36 +19,133 @@
   </head>
   <body>
     <main>
-      <header>
+      <header class="app-header">
         <div class="branding">
           <h1>Social0x1</h1>
-          <span>Minimalist. Vibrant. Secure chat for every community.</span>
+          <span>Minimalist. Vibrant. Secure private messaging.</span>
         </div>
-        <nav class="theme-toggle" aria-label="Theme selection">
-          <button type="button" data-theme-mode="light">Light</button>
-          <button type="button" data-theme-mode="dark">Dark</button>
-          <button type="button" data-theme-mode="system">System</button>
-        </nav>
+        <div class="header-actions">
+          <nav class="theme-toggle" aria-label="Theme selection">
+            <button type="button" data-theme-mode="light">Light</button>
+            <button type="button" data-theme-mode="dark">Dark</button>
+            <button type="button" data-theme-mode="system">System</button>
+          </nav>
+          <div class="user-menu">
+            <span class="user-chip" data-user-chip>Signed out</span>
+            <button type="button" data-sign-out hidden>Sign out</button>
+          </div>
+        </div>
       </header>
 
-      <section class="chat-shell">
-        <div class="chat-card" role="application" aria-label="Social0x1 chat">
-          <div class="chat-header">
-            <div class="status">
-              <div class="status-dot" aria-hidden="true"></div>
-              <h2>Live feed</h2>
+      <section class="app-shell">
+        <aside class="sidebar">
+          <section class="auth-card" data-auth-card>
+            <div class="auth-tabs" role="tablist" aria-label="Authentication options">
+              <button type="button" data-auth-tab="login" class="active" role="tab" aria-selected="true">
+                Log In
+              </button>
+              <button type="button" data-auth-tab="signup" role="tab" aria-selected="false">
+                Sign Up
+              </button>
             </div>
-            <p class="feedback" data-feedback>Connect to join the conversation.</p>
+
+            <form class="auth-form" data-auth-form="login" novalidate autocomplete="on">
+              <div class="field">
+                <label for="login-email">Email</label>
+                <input id="login-email" name="email" type="email" required autocomplete="email" />
+              </div>
+              <div class="field">
+                <label for="login-password">Password</label>
+                <input
+                  id="login-password"
+                  name="password"
+                  type="password"
+                  required
+                  minlength="6"
+                  autocomplete="current-password"
+                />
+              </div>
+              <button type="submit">Log in</button>
+            </form>
+
+            <form class="auth-form" data-auth-form="signup" hidden novalidate autocomplete="on">
+              <div class="field">
+                <label for="signup-name">Display name</label>
+                <input id="signup-name" name="displayName" type="text" required minlength="2" maxlength="50" />
+              </div>
+              <div class="field">
+                <label for="signup-email">Email</label>
+                <input id="signup-email" name="email" type="email" required autocomplete="email" />
+              </div>
+              <div class="field">
+                <label for="signup-password">Password</label>
+                <input
+                  id="signup-password"
+                  name="password"
+                  type="password"
+                  required
+                  minlength="6"
+                  autocomplete="new-password"
+                />
+              </div>
+              <div class="field">
+                <label for="signup-confirm">Confirm password</label>
+                <input
+                  id="signup-confirm"
+                  name="confirmPassword"
+                  type="password"
+                  required
+                  minlength="6"
+                  autocomplete="new-password"
+                />
+              </div>
+              <button type="submit">Create account</button>
+            </form>
+
+            <p class="auth-feedback" data-auth-feedback role="status"></p>
+          </section>
+
+          <section class="conversation-panel" data-conversation-panel hidden>
+            <header>
+              <h2>Conversations</h2>
+            </header>
+            <form class="conversation-form" data-start-conversation autocomplete="off">
+              <label for="conversation-email" class="sr-only">Teammate email</label>
+              <input
+                id="conversation-email"
+                name="email"
+                type="email"
+                placeholder="friend@example.com"
+                required
+              />
+              <button type="submit">Start private chat</button>
+            </form>
+            <p class="conversation-feedback" data-conversation-feedback role="status"></p>
+            <ul class="conversation-list" data-conversation-list></ul>
+          </section>
+        </aside>
+
+        <section class="chat-panel" data-chat-panel>
+          <div class="chat-header">
+            <div>
+              <h2 data-chat-title>Select a conversation</h2>
+              <p data-chat-subtitle>Start a private chat to see messages.</p>
+            </div>
+            <p class="feedback" data-feedback></p>
           </div>
-
-          <div class="chat-stream" data-message-stream aria-live="polite"></div>
-
+          <div class="chat-content">
+            <div class="chat-placeholder" data-empty-state>
+              <h3>You're almost there</h3>
+              <p>Pick an existing conversation or create a new one to begin privately messaging.</p>
+            </div>
+            <div class="chat-stream" data-message-stream aria-live="polite" hidden></div>
+          </div>
           <form class="chat-composer" data-composer autocomplete="off">
             <textarea
               name="message"
               rows="3"
-              maxlength="500"
-              placeholder="Share something uplifting with Social0x1…"
+              maxlength="1000"
+              placeholder="Write a private message…"
               required
               data-message-input
               disabled
@@ -61,32 +158,18 @@
               Send
             </button>
           </form>
-        </div>
+        </section>
       </section>
 
       <footer>
-        <div class="chat-shell">
+        <div class="footer-shell">
           <p>
-            Need help? Follow the <a href="README.md" target="_blank">setup guide</a> or review
-            the security checklist in the repository.
+            Need help? Follow the <a href="README.md" target="_blank">setup guide</a> for deployment, security,
+            and Firebase configuration tips.
           </p>
         </div>
       </footer>
     </main>
-
-    <div class="welcome-modal" data-welcome-modal aria-modal="true" role="dialog">
-      <div class="welcome-card">
-        <svg width="48" height="48" aria-hidden="true">
-          <use href="assets/icons.svg#icon-spark"></use>
-        </svg>
-        <h2>Welcome to Social0x1</h2>
-        <p>
-          Social0x1 keeps communities connected in real time. Sign in anonymously to join the feed.
-          You can update authentication providers anytime inside Firebase.
-        </p>
-        <button type="button" data-start-chat>Connect Securely</button>
-      </div>
-    </div>
 
     <script type="module" src="js/app.js"></script>
   </body>

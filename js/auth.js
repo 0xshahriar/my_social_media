@@ -1,17 +1,19 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
-  addDoc,
-  collection,
+  createUserWithEmailAndPassword,
+  getAuth,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut,
+  updateProfile,
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  doc,
+  getDoc,
   getFirestore,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
   serverTimestamp,
+  setDoc,
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-import { renderMessage, resetStream, setComposerState } from "./app.js";
 
 const firebaseConfig = window?.SOCIAL0X1_FIREBASE_CONFIG;
 
@@ -25,107 +27,216 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const feedback = document.querySelector("[data-feedback]");
-const welcomeModal = document.querySelector("[data-welcome-modal]");
-const signInButton = document.querySelector("[data-start-chat]");
+auth.useDeviceLanguage?.();
 
-function setFeedback(message, type = "info") {
-  if (!feedback) return;
-  feedback.textContent = message;
-  feedback.removeAttribute("role");
+const authTabs = document.querySelectorAll("[data-auth-tab]");
+const authForms = new Map();
+const authFormElements = document.querySelectorAll("[data-auth-form]");
+authFormElements.forEach((form) => {
+  authForms.set(form.dataset.authForm, form);
+});
+
+const authCard = document.querySelector("[data-auth-card]");
+const conversationPanel = document.querySelector("[data-conversation-panel]");
+const authFeedback = document.querySelector("[data-auth-feedback]");
+const userChip = document.querySelector("[data-user-chip]");
+const signOutButton = document.querySelector("[data-sign-out]");
+
+let activeAuthMode = "login";
+
+function normalizeEmail(email) {
+  return email.trim().toLowerCase();
+}
+
+function setAuthFeedback(message, type = "info") {
+  if (!authFeedback) return;
+  authFeedback.textContent = message;
+  if (!message) {
+    delete authFeedback.dataset.state;
+    authFeedback.removeAttribute("role");
+    authFeedback.removeAttribute("aria-live");
+    return;
+  }
+  authFeedback.dataset.state = type === "error" ? "error" : type === "success" ? "success" : "info";
   if (type === "error") {
-    feedback.setAttribute("role", "alert");
+    authFeedback.setAttribute("role", "alert");
+    authFeedback.removeAttribute("aria-live");
+  } else {
+    authFeedback.setAttribute("aria-live", "polite");
+    authFeedback.removeAttribute("role");
   }
 }
 
-function randomColor(uid) {
-  const palette = ["#ff6f61", "#ec4899", "#6366f1", "#22d3ee", "#f97316", "#14b8a6"];
-  let hash = 0;
-  for (let i = 0; i < uid.length; i += 1) {
-    hash = uid.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % palette.length;
-  return palette[index];
+function clearAuthFeedback() {
+  setAuthFeedback("");
 }
 
-export function startListening() {
-  const messagesRef = collection(db, "messages");
-  const recentMessagesQuery = query(messagesRef, orderBy("createdAt", "desc"), limit(50));
-
-  onSnapshot(
-    recentMessagesQuery,
-    (snapshot) => {
-      const currentUid = auth.currentUser?.uid ?? "";
-      const docs = snapshot.docs.slice().reverse();
-      resetStream();
-      docs.forEach((docSnap) => {
-        renderMessage({ id: docSnap.id, ...docSnap.data() }, currentUid, randomColor);
-      });
-      setFeedback(`${docs.length} message${docs.length === 1 ? "" : "s"} loaded.`);
-    },
-    (error) => {
-      console.error("Realtime listener error", error);
-      setFeedback("Connection lost. Retrying…", "error");
+function toggleAuthMode(mode) {
+  if (!authForms.has(mode)) {
+    return;
+  }
+  activeAuthMode = mode;
+  authTabs.forEach((tab) => {
+    const isActive = tab.dataset.authTab === mode;
+    tab.classList.toggle("active", isActive);
+    tab.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+  authForms.forEach((form, key) => {
+    if (key === mode) {
+      form.removeAttribute("hidden");
+    } else {
+      form.setAttribute("hidden", "");
     }
-  );
+  });
+  clearAuthFeedback();
 }
 
-export async function sendMessage(text) {
-  const trimmed = text.trim();
-  if (!trimmed) {
-    throw new Error("Message cannot be empty.");
-  }
-  if (trimmed.length > 500) {
-    throw new Error("Messages are limited to 500 characters.");
-  }
+function setFormBusy(form, isBusy) {
+  if (!form) return;
+  const elements = form.querySelectorAll("input, button");
+  elements.forEach((element) => {
+    element.disabled = isBusy;
+  });
+}
 
-  const user = auth.currentUser;
-  if (!user) {
-    throw new Error("You must be signed in to send messages.");
-  }
-
+async function ensureProfileDocument(user) {
+  if (!user?.uid) return;
+  const profileRef = doc(db, "profiles", user.uid);
+  const existing = await getDoc(profileRef);
   const payload = {
-    text: trimmed,
-    uid: user.uid,
-    displayName: user.isAnonymous ? "Anonymous" : user.displayName || "Social0x1 User",
-    createdAt: serverTimestamp(),
+    displayName: user.displayName || user.email?.split("@")?.[0] || "Social0x1 user",
+    email: user.email ?? "",
+    emailLowercase: user.email ? normalizeEmail(user.email) : "",
+    updatedAt: serverTimestamp(),
+    lastLoginAt: serverTimestamp(),
   };
-
-  await addDoc(collection(db, "messages"), payload);
+  if (!existing.exists()) {
+    payload.createdAt = serverTimestamp();
+  }
+  await setDoc(profileRef, payload, { merge: true });
 }
 
-async function authenticateAnonymously() {
+function updateUserUi(user) {
+  if (user) {
+    authCard?.setAttribute("hidden", "");
+    conversationPanel?.removeAttribute("hidden");
+    signOutButton?.removeAttribute("hidden");
+    if (userChip) {
+      userChip.textContent = user.displayName || user.email || "Signed in";
+    }
+  } else {
+    authCard?.removeAttribute("hidden");
+    conversationPanel?.setAttribute("hidden", "");
+    signOutButton?.setAttribute("hidden", "");
+    if (userChip) {
+      userChip.textContent = "Signed out";
+    }
+  }
+  document.body.dataset.authenticated = user ? "true" : "false";
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const email = form.email.value;
+  const password = form.password.value;
+
+  setFormBusy(form, true);
+  setAuthFeedback("Signing you in…");
   try {
-    setComposerState(true);
-    setFeedback("Connecting securely…");
-    await signInAnonymously(auth);
+    await signInWithEmailAndPassword(auth, email, password);
+    form.reset();
+    setAuthFeedback("Welcome back!", "success");
   } catch (error) {
-    console.error("Anonymous sign-in failed", error);
-    setFeedback("Sign-in failed. Please refresh and try again.", "error");
-    setComposerState(false);
+    console.error("Login failed", error);
+    setAuthFeedback(error.message || "Unable to log in. Check your credentials and try again.", "error");
+  } finally {
+    setFormBusy(form, false);
   }
 }
 
-export function initializeAuth() {
-  signInButton?.addEventListener("click", authenticateAnonymously);
+async function handleSignup(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const displayName = form.displayName.value.trim();
+  const email = form.email.value;
+  const password = form.password.value;
+  const confirmPassword = form.confirmPassword.value;
+
+  if (password !== confirmPassword) {
+    setAuthFeedback("Passwords do not match.", "error");
+    return;
+  }
+  if (displayName.length < 2) {
+    setAuthFeedback("Display name must be at least 2 characters.", "error");
+    return;
+  }
+
+  setFormBusy(form, true);
+  setAuthFeedback("Creating your account…");
+
+  try {
+    const credentials = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(credentials.user, { displayName });
+    await ensureProfileDocument({ ...credentials.user, displayName });
+    form.reset();
+    setAuthFeedback("Account created! You're signed in.", "success");
+  } catch (error) {
+    console.error("Signup failed", error);
+    setAuthFeedback(error.message || "Unable to create your account. Please try again.", "error");
+  } finally {
+    setFormBusy(form, false);
+  }
+}
+
+async function handleSignOut() {
+  if (!signOutButton) return;
+  signOutButton.disabled = true;
+  try {
+    await signOut(auth);
+    setAuthFeedback("Signed out successfully.", "success");
+  } catch (error) {
+    console.error("Sign-out failed", error);
+    setAuthFeedback(error.message || "Unable to sign out. Please try again.", "error");
+  } finally {
+    signOutButton.disabled = false;
+  }
+}
+
+export function initializeAuth({ onAuthStateChange } = {}) {
+  authTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      toggleAuthMode(tab.dataset.authTab);
+    });
+  });
+
+  authForms.get("login")?.addEventListener("submit", handleLogin);
+  authForms.get("signup")?.addEventListener("submit", handleSignup);
+  signOutButton?.addEventListener("click", handleSignOut);
+
+  toggleAuthMode(activeAuthMode);
 
   onAuthStateChanged(
     auth,
-    (user) => {
-      if (!user) {
-        welcomeModal?.classList.add("active");
-        setFeedback("Connect to join the conversation.");
-        setComposerState(true);
-        return;
+    async (user) => {
+      try {
+        if (user) {
+          await ensureProfileDocument(user);
+        }
+      } catch (error) {
+        console.error("Profile sync failed", error);
+      } finally {
+        updateUserUi(user);
+        if (typeof onAuthStateChange === "function") {
+          onAuthStateChange(user);
+        }
       }
-      welcomeModal?.classList.remove("active");
-      setFeedback("You are connected. Say hello!");
-      setComposerState(false);
-      startListening();
     },
     (error) => {
-      console.error("Auth state error", error);
-      setFeedback("Authentication error. Please refresh the page.", "error");
+      console.error("Auth observer error", error);
+      setAuthFeedback("Authentication error. Refresh the page and try again.", "error");
     }
   );
 }
+
+export { auth as firebaseAuth, db as firebaseDb };
